@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "MVDataFinder": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Users\\creep\\Documents\\Application Files\\RPG Maker MV\\Test\""
+    },
+    "OMORI": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Users\\creep\\Documents\\Games\\OMORI\\! Playtest (CLEAN)\""
+    }
+  }
+}
