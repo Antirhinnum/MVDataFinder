@@ -11,10 +11,12 @@ namespace MVDataFinder
 {
 	internal enum Source
 	{
-		MapEvent,
 		CommonEvent,
-		Troop,
-		Enemy
+		Enemy,
+		Item,
+		MapEvent,
+		Skill,
+		Troop
 	}
 
 	internal enum IOType
@@ -30,13 +32,13 @@ namespace MVDataFinder
 		string OutputInfo();
 	}
 
-	internal struct SwitchVarInfo
+	internal struct SwitchVarLocationInfo
 	{
 		public Source Source { get; set; }
 		public IOType IOType { get; set; }
 		public IInfo Info { get; set; }
 
-		public SwitchVarInfo(Source source, IOType type, IInfo info)
+		public SwitchVarLocationInfo(Source source, IOType type, IInfo info)
 		{
 			Source = source;
 			IOType = type;
@@ -44,14 +46,26 @@ namespace MVDataFinder
 		}
 	}
 
+	internal struct CommonEventLocationInfo
+	{
+		public Source Source { get; set; }
+		public IInfo Info { get; set; }
+
+		public CommonEventLocationInfo(Source source, IInfo info)
+		{
+			Source = source;
+			Info = info;
+		}
+	}
+
 	internal struct CommonEventInfo : IInfo
 	{
-		internal int ID { get; set; }
+		internal int Id { get; set; }
 		internal CommonEventSource Source { get; set; }
 
 		internal CommonEventInfo(int id, CommonEventSource source)
 		{
-			ID = id;
+			Id = id;
 			Source = source;
 		}
 
@@ -63,21 +77,38 @@ namespace MVDataFinder
 
 		public string OutputInfo()
 		{
-			return $"Common Event {ID} ('{Program.Data.CommonEvents[ID].Name}'), found in {Source}";
+			return $"Common Event {Id} ('{Program.Data.CommonEvents[Id].Name}'), found in {Source}";
+		}
+	}
+
+	internal struct CommonEventAutorunInfo : IInfo
+	{
+		internal int SwitchId { get; set; }
+		internal Trigger AutorunType { get; set; }
+
+		internal CommonEventAutorunInfo(int switchId, Trigger type)
+		{
+			SwitchId = switchId;
+			AutorunType = type;
+		}
+
+		public string OutputInfo()
+		{
+			return $"Runs when Switch {SwitchId} ('{Program.Data.System.Switches[SwitchId]}') is ON. Type: {AutorunType}";
 		}
 	}
 
 	internal struct MapEventInfo : IInfo
 	{
-		internal int MapID { get; set; }
-		internal int EventID { get; set; }
+		internal int MapId { get; set; }
+		internal int EventId { get; set; }
 		internal int PageIndex { get; set; }
 		internal MapEventSource Source { get; set; }
 
-		internal MapEventInfo(int mapID, int eventID, MapEventSource source, int pageIndex)
+		internal MapEventInfo(int mapId, int eventId, MapEventSource source, int pageIndex)
 		{
-			MapID = mapID;
-			EventID = eventID;
+			MapId = mapId;
+			EventId = eventId;
 			Source = source;
 			PageIndex = pageIndex;
 		}
@@ -91,37 +122,52 @@ namespace MVDataFinder
 
 		public string OutputInfo()
 		{
-			MapEvent mapEvent = Program.Data.Maps[MapID].Events[EventID];
-			return $"Map {MapID} ('{Program.Data.MapInfos[MapID]?.Name ?? "No Info"}'), Event {EventID} ('{mapEvent.Name}') at ({mapEvent.X}, {mapEvent.Y}). Found in {Source} on Page {PageIndex + 1}";
+			MapEvent mapEvent = Program.Data.Maps[MapId].Events[EventId];
+			return $"Map {MapId} ('{Program.Data.MapInfos[MapId]?.Name ?? "No Info"}'), Event {EventId} ('{mapEvent.Name}') at ({mapEvent.X}, {mapEvent.Y}). Found in {Source} on Page {PageIndex + 1}";
 		}
 	}
 
 	internal struct EnemyInfo : IInfo
 	{
-		internal int EnemyID { get; set; }
+		internal int EnemyId { get; set; }
 		internal int ActionIndex { get; set; }
 
-		public EnemyInfo(int enemyID, int actionIndex)
+		public EnemyInfo(int enemyId, int actionIndex)
 		{
-			EnemyID = enemyID;
+			EnemyId = enemyId;
 			ActionIndex = actionIndex;
 		}
 
 		public string OutputInfo()
 		{
-			return $"Enemy {EnemyID} ('{Program.Data.Enemies[EnemyID].Name}'), Action {ActionIndex + 1} Condition";
+			return $"Enemy {EnemyId} ('{Program.Data.Enemies[EnemyId].Name}'), Action {ActionIndex + 1} Condition";
+		}
+	}
+
+	internal struct SkillInfo : IInfo
+	{
+		internal int SkillId { get; set; }
+
+		internal SkillInfo(int skillId)
+		{
+			SkillId = skillId;
+		}
+
+		public string OutputInfo()
+		{
+			return $"Skill {SkillId} ('{Program.Data.Skills[SkillId].Name}'). Found in Effects.";
 		}
 	}
 
 	internal struct TroopInfo : IInfo
 	{
-		internal int TroopID { get; set; }
+		internal int TroopId { get; set; }
 		internal int PageIndex { get; set; }
 		internal TroopSource Source { get; set; }
 
-		internal TroopInfo(int troopID, TroopSource source, int pageIndex)
+		internal TroopInfo(int troopId, TroopSource source, int pageIndex)
 		{
-			TroopID = troopID;
+			TroopId = troopId;
 			Source = source;
 			PageIndex = pageIndex;
 		}
@@ -134,7 +180,22 @@ namespace MVDataFinder
 
 		public string OutputInfo()
 		{
-			return $"Troop {TroopID} ('{Program.Data.Troops[TroopID].Name}'). Found in {Source} on Page {PageIndex + 1}";
+			return $"Troop {TroopId} ('{Program.Data.Troops[TroopId].Name}'). Found in {Source} on Page {PageIndex + 1}";
+		}
+	}
+
+	internal struct ItemInfo : IInfo
+	{
+		internal int ItemId { get; set; }
+
+		internal ItemInfo(int itemId)
+		{
+			ItemId = itemId;
+		}
+
+		public string OutputInfo()
+		{
+			return $"Item {ItemId} ('{Program.Data.Items[ItemId].Name}'). Found in Effects.";
 		}
 	}
 
@@ -142,18 +203,17 @@ namespace MVDataFinder
 	{
 		private static readonly Regex GameSwitchesValueRegex = new Regex(@"\$gameSwitches.value\(([0-9]*)\)");
 		private static readonly Regex GameSwitchesSetValue = new Regex(@"\$gameSwitches.setValue\(([0-9]*)\)");
+		private static readonly Regex GameTempReserveCommonEvent = new Regex(@"\$gametemp.reserveCommonEvent\(([0-9]*)\)");
 		internal static MVData Data { get; set; }
-		private static Dictionary<int, List<SwitchVarInfo>> TrackedSwitchIDs { get; } = new Dictionary<int, List<SwitchVarInfo>>();
-		private static Dictionary<int, List<SwitchVarInfo>> TrackedVariableIDs { get; } = new Dictionary<int, List<SwitchVarInfo>>();
+		private static Dictionary<int, List<SwitchVarLocationInfo>> TrackedSwitchIds { get; } = new Dictionary<int, List<SwitchVarLocationInfo>>();
+		private static Dictionary<int, List<SwitchVarLocationInfo>> TrackedVariableIds { get; } = new Dictionary<int, List<SwitchVarLocationInfo>>();
+		private static Dictionary<int, List<CommonEventLocationInfo>> TrackedCommonEventIds { get; } = new Dictionary<int, List<CommonEventLocationInfo>>();
 		private static bool ShouldSearchForSwitches { get; set; }
 		private static bool ShouldSearchForVariables { get; set; }
+		private static bool ShouldSearchForCommonEvents { get; set; }
 
 		internal static void Main(string[] args)
 		{
-			Data = null;
-			TrackedSwitchIDs.Clear();
-			TrackedVariableIDs.Clear();
-
 			#region Get Project Folder
 
 			Console.WriteLine("RPG Maker MV Switch/Variable Finder");
@@ -186,9 +246,29 @@ namespace MVDataFinder
 
 			#endregion Get Project Folder
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+			Data = null;
+			TrackedSwitchIds.Clear();
+			TrackedVariableIds.Clear();
+			TrackedCommonEventIds.Clear();
+
+			
+
 			Console.WriteLine("Deserializing the RPG Maker MV Project...");
 			Data = MVData.DeserializeFromPath(gameFolderPath);
-			AddSwitchesAndVariables();
+			AddTrackedData();
 			SearchForData();
 			DisplayResults();
 
@@ -196,7 +276,7 @@ namespace MVDataFinder
 			Console.ReadLine();
 		}
 
-		private static void AddSwitchesAndVariables()
+		private static void AddTrackedData()
 		{
 			#region Add Switches
 
@@ -210,7 +290,7 @@ namespace MVDataFinder
 				{
 					if (id > 0 && id <= numSwitches)
 					{
-						if (TrackedSwitchIDs.TryAdd(id, new List<SwitchVarInfo>()))
+						if (TrackedSwitchIds.TryAdd(id, new List<SwitchVarLocationInfo>()))
 						{
 							Console.WriteLine($"Added Switch {id}, named \"{Data.System.Switches[id]}\"");
 						}
@@ -223,7 +303,7 @@ namespace MVDataFinder
 					{
 						for (int i = 1; i <= numSwitches; i++)
 						{
-							TrackedSwitchIDs.TryAdd(i, new List<SwitchVarInfo>());
+							TrackedSwitchIds.TryAdd(i, new List<SwitchVarLocationInfo>());
 						}
 						Console.WriteLine("Added all switches.");
 						break;
@@ -243,7 +323,7 @@ namespace MVDataFinder
 				}
 			}
 
-			ShouldSearchForSwitches = TrackedSwitchIDs.Count > 0;
+			ShouldSearchForSwitches = TrackedSwitchIds.Count > 0;
 
 			#endregion Add Switches
 
@@ -259,7 +339,7 @@ namespace MVDataFinder
 				{
 					if (id > 0 && id <= numVariables)
 					{
-						if (TrackedVariableIDs.TryAdd(id, new List<SwitchVarInfo>()))
+						if (TrackedVariableIds.TryAdd(id, new List<SwitchVarLocationInfo>()))
 						{
 							Console.WriteLine($"Added Variable {id}, named \"{Data.System.Variables[id]}\"");
 						}
@@ -272,7 +352,7 @@ namespace MVDataFinder
 					{
 						for (int i = 1; i <= numVariables; i++)
 						{
-							TrackedVariableIDs.TryAdd(i, new List<SwitchVarInfo>());
+							TrackedVariableIds.TryAdd(i, new List<SwitchVarLocationInfo>());
 						}
 						Console.WriteLine("Added all variables.");
 						break;
@@ -292,23 +372,79 @@ namespace MVDataFinder
 				}
 			}
 
-			ShouldSearchForVariables = TrackedVariableIDs.Count > 0;
+			ShouldSearchForVariables = TrackedVariableIds.Count > 0;
 
 			#endregion Add Variables
+
+			#region Add Common Events
+
+			Console.WriteLine("Please input the IDs of the Common Events you wish to find.");
+			Console.WriteLine("Type nothing if you want to stop, type '-1' to find all Common Events.");
+			int numEvents = Data.CommonEvents.Count - 1;
+			while (true)
+			{
+				string input = Console.ReadLine();
+				if (int.TryParse(input, out int id))
+				{
+					if (id > 0 && id <= numEvents)
+					{
+						if (TrackedCommonEventIds.TryAdd(id, new List<CommonEventLocationInfo>()))
+						{
+							Console.WriteLine($"Added Common Event {id}, named \"{Data.CommonEvents[id].Name}\"");
+						}
+						else
+						{
+							Console.WriteLine($"Common Event {id} has already been added!");
+						}
+					}
+					else if (id == -1)
+					{
+						for (int i = 1; i <= numEvents; i++)
+						{
+							TrackedCommonEventIds.TryAdd(i, new List<CommonEventLocationInfo>());
+						}
+						Console.WriteLine("Added all Common Events.");
+						break;
+					}
+					else
+					{
+						Console.WriteLine($"Common Event {id} is out of bounds! Common Events start at 1 and end at {numEvents}");
+					}
+				}
+				else if (input == string.Empty)
+				{
+					break;
+				}
+				else
+				{
+					Console.WriteLine("Common Event IDs should be integers!");
+				}
+			}
+
+			ShouldSearchForCommonEvents = TrackedCommonEventIds.Count > 0;
+
+			#endregion Add Common Events
 		}
 
 		private static void SearchForData()
 		{
+
+
+
+
+			return;
+
 			foreach (CommonEvent cEvent in Data.CommonEvents)
 			{
 				if (cEvent == null) continue;
 
 				if (cEvent.Trigger != Trigger.None)
 				{
-					TryAddSwitchInfo(cEvent.SwitchID.ID, Source.CommonEvent, IOType.Read, new CommonEventInfo(cEvent.ID.ID, CommonEventInfo.CommonEventSource.Trigger));
+					TryAddSwitchInfo(cEvent.SwitchId, Source.CommonEvent, IOType.Read, new CommonEventInfo(cEvent.Id, CommonEventInfo.CommonEventSource.Trigger));
+					TryAddCommonEventInfo(cEvent.Id, Source.CommonEvent, new CommonEventAutorunInfo(cEvent.SwitchId, cEvent.Trigger));
 				}
 
-				SearchEventCommands(cEvent.Commands, Source.CommonEvent, new CommonEventInfo(cEvent.ID.ID, CommonEventInfo.CommonEventSource.Body));
+				SearchEventCommands(cEvent.Commands, Source.CommonEvent, new CommonEventInfo(cEvent.Id, CommonEventInfo.CommonEventSource.Body));
 			}
 
 			foreach (Map map in Data.Maps)
@@ -327,40 +463,23 @@ namespace MVDataFinder
 						{
 							if (page.Conditions.Switch1Valid)
 							{
-								TryAddSwitchInfo(page.Conditions.Switch1ID.ID, Source.MapEvent, IOType.Read, new MapEventInfo(map.ID.ID, mapEvent.ID.ID, MapEventInfo.MapEventSource.Conditions, i));
+								TryAddSwitchInfo(page.Conditions.Switch1Id, Source.MapEvent, IOType.Read, new MapEventInfo(map.Id, mapEvent.Id, MapEventInfo.MapEventSource.Conditions, i));
 							}
 							if (page.Conditions.Switch2Valid)
 							{
-								TryAddSwitchInfo(page.Conditions.Switch2ID.ID, Source.MapEvent, IOType.Read, new MapEventInfo(map.ID.ID, mapEvent.ID.ID, MapEventInfo.MapEventSource.Conditions, i));
+								TryAddSwitchInfo(page.Conditions.Switch2Id, Source.MapEvent, IOType.Read, new MapEventInfo(map.Id, mapEvent.Id, MapEventInfo.MapEventSource.Conditions, i));
 							}
 						}
 						if (ShouldSearchForVariables)
 						{
 							if (page.Conditions.VariableValid)
 							{
-								TryAddVariableInfo(page.Conditions.VariableID.ID, Source.MapEvent, IOType.Read, new MapEventInfo(map.ID.ID, mapEvent.ID.ID, MapEventInfo.MapEventSource.Conditions, i));
+								TryAddVariableInfo(page.Conditions.VariableId, Source.MapEvent, IOType.Read, new MapEventInfo(map.Id, mapEvent.Id, MapEventInfo.MapEventSource.Conditions, i));
 							}
 						}
 
-						SearchMovementRoute(page.MovementRoute, Source.MapEvent, new MapEventInfo(map.ID.ID, mapEvent.ID.ID, MapEventInfo.MapEventSource.MovementRoute, i));
-						SearchEventCommands(page.Commands, Source.MapEvent, new MapEventInfo(map.ID.ID, mapEvent.ID.ID, MapEventInfo.MapEventSource.Body, i));
-					}
-				}
-			}
-
-			if (ShouldSearchForSwitches)
-			{
-				foreach (Enemy enemy in Data.Enemies)
-				{
-					if (enemy == null) continue;
-
-					for (int i = 0; i < enemy.Actions.Count; i++)
-					{
-						EnemyAction action = enemy.Actions[i];
-						if (action.ConditionType == ConditionType.Switch)
-						{
-							TryAddSwitchInfo(action.ConditionParam1, Source.Enemy, IOType.Read, new EnemyInfo(enemy.ID.ID, i));
-						}
+						SearchMovementRoute(page.MovementRoute, Source.MapEvent, new MapEventInfo(map.Id, mapEvent.Id, MapEventInfo.MapEventSource.MovementRoute, i));
+						SearchEventCommands(page.Contents, Source.MapEvent, new MapEventInfo(map.Id, mapEvent.Id, MapEventInfo.MapEventSource.Body, i));
 					}
 				}
 			}
@@ -377,11 +496,57 @@ namespace MVDataFinder
 					{
 						if (page.Conditions.SwitchValid)
 						{
-							TryAddSwitchInfo(page.Conditions.SwitchID.ID, Source.Troop, IOType.Read, new TroopInfo(troop.ID.ID, TroopInfo.TroopSource.Conditions, i));
+							TryAddSwitchInfo(page.Conditions.SwitchId, Source.Troop, IOType.Read, new TroopInfo(troop.Id, TroopInfo.TroopSource.Conditions, i));
 						}
 					}
 
-					SearchEventCommands(page.Commands, Source.Troop, new TroopInfo(troop.ID.ID, TroopInfo.TroopSource.Body, i));
+					SearchEventCommands(page.Commands, Source.Troop, new TroopInfo(troop.Id, TroopInfo.TroopSource.Body, i));
+				}
+			}
+
+			if (ShouldSearchForSwitches)
+			{
+				foreach (Enemy enemy in Data.Enemies)
+				{
+					if (enemy == null) continue;
+
+					for (int i = 0; i < enemy.ActionPatterns.Count; i++)
+					{
+						EnemyAction action = enemy.ActionPatterns[i];
+						if (action.ConditionType == ConditionType.Switch)
+						{
+							TryAddSwitchInfo(action.ConditionParam1, Source.Enemy, IOType.Read, new EnemyInfo(enemy.Id, i));
+						}
+					}
+				}
+			}
+
+			if (ShouldSearchForCommonEvents)
+			{
+				foreach (Item item in Data.Items)
+				{
+					if (item == null) continue;
+
+					foreach (Effect effect in item.Effects)
+					{
+						if (effect.Code == EffectCode.CommonEvent)
+						{
+							TryAddCommonEventInfo(effect.DataId, Source.Skill, new ItemInfo(item.Id));
+						}
+					}
+				}
+
+				foreach (Skill skill in Data.Skills)
+				{
+					if (skill == null) continue;
+
+					foreach (Effect effect in skill.Effects)
+					{
+						if (effect.Code == EffectCode.CommonEvent)
+						{
+							TryAddCommonEventInfo(effect.DataId, Source.Skill, new SkillInfo(skill.Id));
+						}
+					}
 				}
 			}
 
@@ -392,7 +557,7 @@ namespace MVDataFinder
 			if (ShouldSearchForSwitches)
 			{
 				Console.WriteLine("Switches found:");
-				foreach (KeyValuePair<int, List<SwitchVarInfo>> pair in TrackedSwitchIDs)
+				foreach (KeyValuePair<int, List<SwitchVarLocationInfo>> pair in TrackedSwitchIds)
 				{
 					if (pair.Value.Count == 0)
 					{
@@ -402,9 +567,9 @@ namespace MVDataFinder
 
 					Console.WriteLine($"	Switch {pair.Key} ('{Data.System.Switches[pair.Key]}'):");
 
-					foreach (SwitchVarInfo info in pair.Value)
+					foreach (SwitchVarLocationInfo info in pair.Value)
 					{
-						Console.WriteLine($"		{info.Info.OutputInfo()}");
+						Console.WriteLine($"		[{(info.IOType == IOType.Read ? "R" : "W")}] {info.Info.OutputInfo()}");
 					}
 				}
 			}
@@ -412,7 +577,7 @@ namespace MVDataFinder
 			if (ShouldSearchForVariables)
 			{
 				Console.WriteLine("Variables found:");
-				foreach (KeyValuePair<int, List<SwitchVarInfo>> pair in TrackedVariableIDs)
+				foreach (KeyValuePair<int, List<SwitchVarLocationInfo>> pair in TrackedVariableIds)
 				{
 					if (pair.Value.Count == 0)
 					{
@@ -422,7 +587,27 @@ namespace MVDataFinder
 
 					Console.WriteLine($"	Variable {pair.Key} ('{Data.System.Variables[pair.Key]}'):");
 
-					foreach (SwitchVarInfo info in pair.Value)
+					foreach (SwitchVarLocationInfo info in pair.Value)
+					{
+						Console.WriteLine($"		[{(info.IOType == IOType.Read ? "R" : "W")}] {info.Info.OutputInfo()}");
+					}
+				}
+			}
+
+			if (ShouldSearchForCommonEvents)
+			{
+				Console.WriteLine("Common Events found:");
+				foreach (KeyValuePair<int, List<CommonEventLocationInfo>> pair in TrackedCommonEventIds)
+				{
+					if (pair.Value.Count == 0)
+					{
+						Console.WriteLine($"	Did not find any instances of Common Event {pair.Key} ('{Data.CommonEvents[pair.Key].Name}')!");
+						continue;
+					}
+
+					Console.WriteLine($"	Common Event {pair.Key} ('{Data.CommonEvents[pair.Key].Name}'):");
+
+					foreach (CommonEventLocationInfo info in pair.Value)
 					{
 						Console.WriteLine($"		{info.Info.OutputInfo()}");
 					}
@@ -430,44 +615,64 @@ namespace MVDataFinder
 			}
 		}
 
-		private static void TryAddSwitchInfo(int switchID, Source source, IOType ioType, IInfo info)
+		private static void TryAddSwitchInfo(int switchId, Source source, IOType ioType, IInfo info)
 		{
 			if (!ShouldSearchForSwitches)
 			{
 				return;
 			}
 
-			if (switchID < 1 || switchID > Data.System.Switches.Count)
+			if (switchId < 1 || switchId > Data.System.Switches.Count)
 			{
 				return;
 			}
 
-			if (!TrackedSwitchIDs.ContainsKey(switchID))
+			if (!TrackedSwitchIds.ContainsKey(switchId))
 			{
 				return;
 			}
 
-			TrackedSwitchIDs[switchID].Add(new SwitchVarInfo(source, ioType, info));
+			TrackedSwitchIds[switchId].Add(new SwitchVarLocationInfo(source, ioType, info));
 		}
 
-		private static void TryAddVariableInfo(int variableID, Source source, IOType ioType, IInfo info)
+		private static void TryAddVariableInfo(int variableId, Source source, IOType ioType, IInfo info)
 		{
 			if (!ShouldSearchForVariables)
 			{
 				return;
 			}
 
-			if (variableID < 1 || variableID > Data.System.Variables.Count)
+			if (variableId < 1 || variableId > Data.System.Variables.Count)
 			{
 				return;
 			}
 
-			if (!TrackedVariableIDs.ContainsKey(variableID))
+			if (!TrackedVariableIds.ContainsKey(variableId))
 			{
 				return;
 			}
 
-			TrackedVariableIDs[variableID].Add(new SwitchVarInfo(source, ioType, info));
+			TrackedVariableIds[variableId].Add(new SwitchVarLocationInfo(source, ioType, info));
+		}
+
+		private static void TryAddCommonEventInfo(int commonEventId, Source source, IInfo info)
+		{
+			if (!ShouldSearchForCommonEvents)
+			{
+				return;
+			}
+
+			if (commonEventId < 1 || commonEventId > Data.CommonEvents.Count)
+			{
+				return;
+			}
+
+			if (!TrackedCommonEventIds.ContainsKey(commonEventId))
+			{
+				return;
+			}
+
+			TrackedCommonEventIds[commonEventId].Add(new CommonEventLocationInfo(source, info));
 		}
 
 		private static void SearchEventCommands(in IList<EventCommand> commands, in Source source, in IInfo info)
@@ -481,17 +686,17 @@ namespace MVDataFinder
 					case EventCode.SelectItem:
 						{
 							if (!ShouldSearchForVariables) break;
-							int variableID = Convert.ToInt32(parameters[0]);
-							TryAddVariableInfo(variableID, source, IOType.Write, info);
+							int variableId = Convert.ToInt32(parameters[0]);
+							TryAddVariableInfo(variableId, source, IOType.Write, info);
 							break;
 						}
 
 					case EventCode.ControlSwitches:
 						{
 							if (!ShouldSearchForSwitches) break;
-							int startID = Convert.ToInt32(parameters[0]);
-							int endID = Convert.ToInt32(parameters[1]);
-							for (int i = startID; i <= endID; i++)
+							int startId = Convert.ToInt32(parameters[0]);
+							int endId = Convert.ToInt32(parameters[1]);
+							for (int i = startId; i <= endId; i++)
 							{
 								TryAddSwitchInfo(i, source, IOType.Write, info);
 							}
@@ -501,9 +706,9 @@ namespace MVDataFinder
 					case EventCode.ControlVariables:
 						{
 							if (!ShouldSearchForVariables) break;
-							int startID = Convert.ToInt32(parameters[0]);
-							int endID = Convert.ToInt32(parameters[1]);
-							for (int i = startID; i <= endID; i++)
+							int startId = Convert.ToInt32(parameters[0]);
+							int endId = Convert.ToInt32(parameters[1]);
+							for (int i = startId; i <= endId; i++)
 							{
 								TryAddVariableInfo(i, source, IOType.Write, info);
 							}
@@ -525,8 +730,8 @@ namespace MVDataFinder
 							int checkedValueType = Convert.ToInt32(parameters[0]);
 							if (checkedValueType == 0 && ShouldSearchForSwitches) // Switch
 							{
-								int checkedSwitchID = Convert.ToInt32(parameters[1]);
-								TryAddSwitchInfo(checkedSwitchID, source, IOType.Read, info);
+								int checkedSwitchId = Convert.ToInt32(parameters[1]);
+								TryAddSwitchInfo(checkedSwitchId, source, IOType.Read, info);
 							}
 							else if (checkedValueType == 1 && ShouldSearchForVariables) // Variable
 							{
@@ -659,7 +864,13 @@ namespace MVDataFinder
 						}
 						break;
 
+					case EventCode.CommonEvent:
+						if (!ShouldSearchForCommonEvents) break;
+						TryAddCommonEventInfo(Convert.ToInt32(parameters[0]), source, info);
+						break;
+
 					case EventCode.Script:
+						SearchJS(Convert.ToString(parameters[0]), source, info);
 						break;
 				}
 			}
@@ -696,16 +907,27 @@ namespace MVDataFinder
 					switchesFound.Add(Convert.ToInt32(match.Groups[1].Value));
 				}
 
-				foreach (int switchID in switchesFound)
+				foreach (int switchId in switchesFound)
 				{
-					TryAddSwitchInfo(switchID, source, IOType.Unknown, info);
+					TryAddSwitchInfo(switchId, source, IOType.Unknown, info);
 				}
 			}
 
-			//if (ShouldSearchForVariables)
-			//{
-			//	HashSet<int> variablesFound = new HashSet<int>();
-			//}
+			if (ShouldSearchForCommonEvents)
+			{
+				HashSet<int> eventsFound = new HashSet<int>();
+				MatchCollection matches = GameTempReserveCommonEvent.Matches(js);
+				foreach (Match match in matches)
+				{
+					if (!match.Success) continue;
+					eventsFound.Add(Convert.ToInt32(match.Groups[1].Value));
+				}
+
+				foreach (int commonEventId in eventsFound)
+				{
+					TryAddCommonEventInfo(commonEventId, source, info);
+				}
+			}
 		}
 	}
 }

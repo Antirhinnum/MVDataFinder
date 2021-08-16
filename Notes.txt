@@ -1,0 +1,19 @@
+
+Find a value in RPG Maker MV files.
+
+Info Needed:
+	Location in files
+	
+
+
+
+Example: Switch 10
+	Data Type: Switch
+	ID: 10
+	
+	Switch Locations:
+		CommonEvent.SwitchId (only if Trigger != Trigger.None)
+		CommonEvent.Commands[*] ...
+		Map.MapEvent[*].Pages[*].Conditions.Switch1Id (only if Switch1Valid)
+		Map.MapEvent[*].Pages[*].Conditions.Switch2Id (only if Switch2Valid)
+	
